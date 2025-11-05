@@ -1,0 +1,14 @@
+{
+  "binance": {
+    "api_key": "",
+    "api_secret": "",
+    "base_url": "https://api.binance.com",
+    "websocket_url": "wss://stream.binance.com:9443/ws"
+  },
+  "hyperliquid": {
+    "api_key": "",
+    "api_secret": "",
+    "base_url": "https://api.hyperliquid.com",
+    "order_endpoint": "/orders"
+  }
+}
