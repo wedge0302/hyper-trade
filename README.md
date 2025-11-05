@@ -5,9 +5,8 @@ High-frequency trading prototype written in Go. The service listens to Binance t
 ## Features
 
 - Concurrent ticker subscriptions for multiple symbols using goroutines.
-- Configurable trading parameters (symbols, notional order size, amplitude threshold, take-profit/stop-loss ratios, leverage, and order cooldown).
+- Configurable trading parameters (symbols, order size, amplitude threshold, take-profit/stop-loss ratios, leverage, and order cooldown).
 - Automatic limit order submissions to Hyperliquid with embedded take-profit and stop-loss ratios.
-- Built-in monitoring dashboard with live metrics and in-browser parameter editing.
 - Dockerized build for easy deployment.
 
 ## Getting started
@@ -42,28 +41,18 @@ You can create environment-specific overrides such as `config/config.secrets.jso
 
 ### Running locally
 
-Symbols are configured in `config/symbols.json` using the following shape so each exchange receives the correct identifier:
-
-```json
-[
-  { "binance": "BTCUSDT", "hyperliquid": "BTC-PERP" },
-  { "binance": "ETHUSDT", "hyperliquid": "ETH-PERP" }
-]
-```
-
 Run the strategy from the command line:
 
 ```bash
 go run ./cmd/trade \
   -config config/config.json \
-  -symbols-file config/symbols.json \
-  -amount 10 \
+  -symbols BTCUSDT,ETHUSDT \
+  -amount 0.1 \
   -amplitude 0.0035 \
   -take-profit 0.2 \
   -stop-loss 0.1 \
   -leverage 5 \
-  -ttl 1m \
-  -monitor-addr :8080
+  -ttl 1m
 ```
 
 Flags:
@@ -83,6 +72,16 @@ Flags:
 
 The embedded dashboard is served on the `-monitor-addr` address. It displays the latest price, amplitude, and order timestamps for each symbol and lets you adjust core strategy parameters (amplitude threshold, order notional, take-profit/stop-loss ratios, leverage, TTL, and amplitude window) without restarting the process.
 
+- `-symbols`: comma-separated symbols (mandatory).
+- `-amount`: order size per trade.
+- `-amplitude`: amplitude threshold (0.0035 = 0.35%).
+- `-take-profit`: take profit ratio (0.20 = 20%).
+- `-stop-loss`: stop loss ratio (0.10 = 10%).
+- `-leverage`: leverage multiplier.
+- `-ttl`: minimum cooldown before the same symbol can trigger another order.
+- `-window`: lookback window for amplitude calculation (default `500ms`).
+- `-config`: path to the JSON configuration file.
+
 ### Docker
 
 Build and run using Docker:
@@ -95,6 +94,9 @@ docker run --rm \
   trade \
   -symbols-file /app/symbols.json \
   -amount 10
+  trade \
+  -symbols BTCUSDT,ETHUSDT \
+  -amount 0.1
 ```
 
 ## Development

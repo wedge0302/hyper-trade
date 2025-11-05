@@ -5,6 +5,7 @@ import "time"
 // Params defines the tunable strategy settings supplied by the user.
 type Params struct {
 	Symbols            []Symbol
+	Symbols            []string
 	AmplitudeThreshold float64
 	OrderAmount        float64
 	TakeProfitRatio    float64

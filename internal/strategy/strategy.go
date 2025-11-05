@@ -3,6 +3,7 @@ package strategy
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,6 +27,16 @@ func Run(ctx context.Context, source TickerSource, executor OrderExecutor, setti
 		return fmt.Errorf("no symbols provided")
 	}
 
+func Run(ctx context.Context, source TickerSource, executor OrderExecutor, params Params) error {
+	if len(params.Symbols) == 0 {
+		return fmt.Errorf("no symbols provided")
+	}
+
+	window := params.AmplitudeWindow
+	if window <= 0 {
+		window = 500 * time.Millisecond
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -39,6 +50,18 @@ func Run(ctx context.Context, source TickerSource, executor OrderExecutor, setti
 		go func(sym Symbol) {
 			defer wg.Done()
 			if err := runForSymbol(ctx, source, executor, settings, metrics, sym); err != nil {
+	errCh := make(chan error, len(params.Symbols))
+
+	for _, sym := range params.Symbols {
+		symbol := strings.ToUpper(strings.TrimSpace(sym))
+		if symbol == "" {
+			continue
+		}
+
+		wg.Add(1)
+		go func(sym string) {
+			defer wg.Done()
+			if err := runForSymbol(ctx, source, executor, params, sym, window); err != nil {
 				select {
 				case errCh <- err:
 				default:
@@ -64,6 +87,8 @@ func Run(ctx context.Context, source TickerSource, executor OrderExecutor, setti
 
 func runForSymbol(ctx context.Context, source TickerSource, executor OrderExecutor, settings *Settings, metrics *Metrics, symbol Symbol) error {
 	updates, errs := source.SubscribeTicker(ctx, symbol.Binance)
+func runForSymbol(ctx context.Context, source TickerSource, executor OrderExecutor, params Params, symbol string, window time.Duration) error {
+	updates, errs := source.SubscribeTicker(ctx, symbol)
 
 	var (
 		priceWindow []TickerUpdate
@@ -80,6 +105,7 @@ func runForSymbol(ctx context.Context, source TickerSource, executor OrderExecut
 			}
 			if err != nil {
 				return fmt.Errorf("%s ticker stream failed: %w", symbol.Binance, err)
+				return fmt.Errorf("%s ticker stream failed: %w", symbol, err)
 			}
 		case update, ok := <-updates:
 			if !ok {
@@ -136,6 +162,11 @@ func runForSymbol(ctx context.Context, source TickerSource, executor OrderExecut
 				Side:            side,
 				Price:           update.Price,
 				Size:            orderSize,
+			order := hyperliquid.LimitOrderRequest{
+				Symbol:          symbol,
+				Side:            side,
+				Price:           update.Price,
+				Size:            params.OrderAmount,
 				Leverage:        params.Leverage,
 				TakeProfitRatio: params.TakeProfitRatio,
 				StopLossRatio:   params.StopLossRatio,
@@ -151,6 +182,10 @@ func runForSymbol(ctx context.Context, source TickerSource, executor OrderExecut
 			metrics.Update(symbol, update.Price, amplitude, update.Time, lastOrder)
 			metrics.RecordOrder(symbol, side, update.Price, orderSize)
 			metrics.AddLog(fmt.Sprintf("%s order submitted for %s at %.4f (size %.4f)", side, symbol.Hyperliquid, update.Price, orderSize))
+				return fmt.Errorf("place order for %s: %w", symbol, err)
+			}
+
+			lastOrder = time.Now()
 		}
 	}
 }
