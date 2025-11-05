@@ -57,6 +57,21 @@ go run ./cmd/trade \
 
 Flags:
 
+- `-symbols-file`: path to the JSON list of `{binance, hyperliquid}` symbol mappings.
+- `-amount`: notional order size in USDT per trade (defaults to `10`).
+- `-amplitude`: amplitude threshold (0.0035 = 0.35%).
+- `-take-profit`: take profit ratio (0.20 = 20%).
+- `-stop-loss`: stop loss ratio (0.10 = 10%).
+- `-leverage`: leverage multiplier (defaults to `5`).
+- `-ttl`: minimum cooldown before the same symbol can trigger another order.
+- `-window`: lookback window for amplitude calculation (default `500ms`).
+- `-monitor-addr`: HTTP listen address for the monitoring UI (default `:8080`).
+- `-config`: path to the JSON configuration file.
+
+### Monitoring dashboard
+
+The embedded dashboard is served on the `-monitor-addr` address. It displays the latest price, amplitude, and order timestamps for each symbol and lets you adjust core strategy parameters (amplitude threshold, order notional, take-profit/stop-loss ratios, leverage, TTL, and amplitude window) without restarting the process.
+
 - `-symbols`: comma-separated symbols (mandatory).
 - `-amount`: order size per trade.
 - `-amplitude`: amplitude threshold (0.0035 = 0.35%).
@@ -75,6 +90,10 @@ Build and run using Docker:
 docker build -t trade .
 docker run --rm \
   -v $(pwd)/config/config.json:/app/config.json \
+  -v $(pwd)/config/symbols.json:/app/symbols.json \
+  trade \
+  -symbols-file /app/symbols.json \
+  -amount 10
   trade \
   -symbols BTCUSDT,ETHUSDT \
   -amount 0.1

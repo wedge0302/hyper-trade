@@ -1,0 +1,4 @@
+[
+  { "binance": "BTCUSDT", "hyperliquid": "BTC-PERP" },
+  { "binance": "ETHUSDT", "hyperliquid": "ETH-PERP" }
+]
